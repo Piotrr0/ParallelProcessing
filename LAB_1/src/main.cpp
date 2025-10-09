@@ -21,11 +21,11 @@ class Timer {
             stopCPU = clock();
             stop = std::chrono::high_resolution_clock::now();
 
-            const double cpuTime = stopCPU - startCPU;
+            const double cpuTime = double(stopCPU - startCPU) / CLOCKS_PER_SEC;
             const auto time = stop - start;
 
             std::cout << "CPU time: " << cpuTime << "\n";
-            std::cout << "time: " << std::chrono::duration_cast<std::chrono::milliseconds>(stop - start).count() << "\n";
+            std::cout << "time: " << std::chrono::duration_cast<std::chrono::milliseconds>(time).count() << "\n";
         }
 
 
@@ -39,10 +39,10 @@ class Timer {
 
 
 int fib(int a) {
-    if(a == 0)
+    if (a == 0)
         return 0;
 
-    if(a == 1)
+    if (a == 1)
         return 1;
 
     return (fib(a-1) + fib(a-2));
@@ -86,19 +86,18 @@ int main() {
         const size_t pids_count = 10;
         std::vector<pid_t> pids;
         pids.reserve(pids_count);
-        for(int i = 0; i<pids_count; i++) {
+        for (int i = 0; i<pids_count; i++) {
             pid_t pid = fork();
             pids.emplace_back(pid);
         }
 
-        for(const auto& pid : pids) {
+        for (const auto& pid : pids) {
             if(pid == 0)
                 exit(0);
             else if (pid > 0)
                 wait(0);
             else
                 std::cout << "Error!\n" << std::endl;
-
         }
     }
 
@@ -109,7 +108,7 @@ int main() {
         std::vector<pthread_t> threads;
         threads.reserve(threads_count);
 
-        for(int i = 0; i<threads_count; i++)
+        for (int i = 0; i<threads_count; i++)
         {
             pthread_t tid;
             pthread_create(&tid, nullptr, &thread_heavy_func, nullptr);
@@ -117,7 +116,7 @@ int main() {
             threads.emplace_back(tid);
         }
 
-        for(const auto& thread : threads) {
+        for (const auto& thread : threads) {
             pthread_join(thread, nullptr);
         }
     }
