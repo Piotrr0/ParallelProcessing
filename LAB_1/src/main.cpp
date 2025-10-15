@@ -49,7 +49,8 @@ int fib(int a) {
 }
 
 void* thread_heavy_func(void * args) {
-    sleep(1);
+    int dummy = 0;
+    dummy++;
     return nullptr;
 }
 
@@ -57,7 +58,7 @@ int main() {
 
     {
         Timer t;
-        for(int i = 0; i<20; i++) {
+        for(int i = 0; i<35; i++) {
             int fib_i = fib(i);
         }
     }
@@ -83,28 +84,28 @@ int main() {
     {
         Timer t;
 
-        const size_t pids_count = 10;
+        const size_t pids_count = 100;
         std::vector<pid_t> pids;
         pids.reserve(pids_count);
         for (int i = 0; i<pids_count; i++) {
             pid_t pid = fork();
-            pids.emplace_back(pid);
+            if (pid == 0)
+                exit(0);
+            else if (pid > 0)
+                pids.emplace_back(pid);
+            else 
+                std::cout << "Error!\n" << std::endl;
         }
 
         for (const auto& pid : pids) {
-            if(pid == 0)
-                exit(0);
-            else if (pid > 0)
-                wait(0);
-            else
-                std::cout << "Error!\n" << std::endl;
+            wait(0);
         }
     }
 
     {
         Timer t;
 
-        const size_t threads_count = 10;
+        const size_t threads_count = 100;
         std::vector<pthread_t> threads;
         threads.reserve(threads_count);
 
@@ -116,7 +117,7 @@ int main() {
             threads.emplace_back(tid);
         }
 
-        for (const auto& thread : threads) {
+        for (auto& thread : threads) {
             pthread_join(thread, nullptr);
         }
     }
