@@ -6,4 +6,4 @@ set(CMAKE_CXX_STANDARD_REQUIRED True)
 
 
 add_executable(server src/server.cpp)
-add_executable(client src/client.cpp)
+add_executable(client src/client.cpp src/client_cli.cpp)
