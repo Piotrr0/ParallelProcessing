@@ -13,6 +13,7 @@ Client::Client(int serverPort, const char* serverIP) {
     serverAddress.sin_family = AF_INET;
     serverAddress.sin_port = htons(serverPort);
     inet_pton(AF_INET, serverIP, &serverAddress.sin_addr);
+    
     if (connect(clientSocket, (struct sockaddr*)&serverAddress, sizeof(serverAddress)) < 0)
         return;
 }
@@ -22,7 +23,7 @@ Client::~Client() {
         close(clientSocket);
 }
 
- void Client::sendMessenge(const char* message) {
+void Client::sendMessenge(const char* message) {
     if (clientSocket < 0) 
         return;
 
