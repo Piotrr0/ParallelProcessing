@@ -3,6 +3,7 @@
 #include <arpa/inet.h>
 #include <unistd.h>
 #include <cstring>
+#include <print>
 #include "client.h"
 
 Client::Client(int serverPort, const char* serverIP) {
@@ -28,11 +29,23 @@ void Client::sendMessenge(const char* message) {
         return;
 
     send(clientSocket, message, strlen(message), 0);
+    receiveMessage();
+}
+
+void Client::receiveMessage() {
+    char messageBuffer[MAX_MESSAGE_LENGTH];
+    
+    int bytesReceived = recv(clientSocket, messageBuffer, sizeof(messageBuffer) - 1, 0);
+    if (bytesReceived > 0) {
+        messageBuffer[bytesReceived] = '\0';
+        std::println("{}", messageBuffer);
+    }
 }
 
 int main() {
     Client client(8080, "127.0.0.1");
-    client.sendMessenge("Hello!");
+    client.sendMessenge("100, 100");
+    client.receiveMessage();
 
     return 0;
 }

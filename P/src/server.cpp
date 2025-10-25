@@ -1,12 +1,14 @@
 #include <cstdlib>
 #include <print>
 #include <cstring>
+#include <random>
 #include <sys/wait.h>
 #include <sys/mman.h>
 #include <sys/socket.h>
 #include <arpa/inet.h>
 #include <unistd.h>
 #include "server.h"
+#include "timer.h"
 
 Server::Server(int port) {
     serverSocket = socket(AF_INET, SOCK_STREAM, 0);
@@ -41,11 +43,39 @@ void Server::listenForConnection() {
 }
 
 void Server::receiveMessage() {
+    char messageBuffer[MAX_MESSAGE_LENGTH];
     int bytesReceived = recv(connectedClientSocket, messageBuffer, sizeof(messageBuffer) - 1, 0);
     if (bytesReceived > 0) {
         messageBuffer[bytesReceived] = '\0';
-        std::println("Message from client: {}", messageBuffer);
+        parseReceiveMessge(messageBuffer);
     }
+}
+
+void Server::sendMessage(const char* msg) {
+    int bytesSent = send(connectedClientSocket, msg, strlen(msg), 0);
+    if (bytesSent == -1)
+        return;
+}
+
+void Server::parseReceiveMessge(char msg[MAX_MESSAGE_LENGTH]) {
+    int rows, cols;
+    if (sscanf(msg, "%d, %d", &rows, &cols) != 2)
+        return;
+
+    matrix_t a = genMatrix(rows, cols);
+    matrix_t b = genMatrix(rows, cols);
+    {
+        Timer t;
+        multiplyMatrixParallel(a, b, 5);
+    }
+
+    {
+        Timer t;
+        multiplyMatrix(a, b);
+    }
+
+    std::string response = "Done\n";
+    sendMessage(response.c_str());
 }
 
 matrix_t Server::multiplyMatrixParallel(const matrix_t& a, const matrix_t& b, int numProcesses) const {
@@ -100,7 +130,6 @@ void Server::computeRows(const matrix_t& a, const matrix_t& b, matrix_t& result,
             sharedResult[i * result.cols + j] = sum;
         }
     }
-    munmap(sharedResult, result.rows * result.cols * sizeof(int));
 }
 
 void Server::waitForChildren(const std::vector<pid_t>& children) const {
@@ -119,7 +148,7 @@ void Server::copySharedToResult(matrix_t& result, int* sharedResult) const {
 }
 
 matrix_t Server::multiplyMatrix(const matrix_t& a, const matrix_t& b) const {
-    matrix_t result;
+    matrix_t result(a.rows, b.cols);
     for (int i = 0; i < a.rows; i++) {
         for (int j = 0; j < b.cols; j++) {
             result.at(i,j) = 0;
@@ -129,6 +158,24 @@ matrix_t Server::multiplyMatrix(const matrix_t& a, const matrix_t& b) const {
         }
     }
     return result;
+}
+
+matrix_t Server::genMatrix(int row, int col) const {
+    matrix_t randomMatrix(row, col);
+
+    std::random_device rd;
+    std::mt19937 gen(rd());
+    std::uniform_int_distribution<> dis(1, 100);
+
+    for (int i = 0; i<row; i++)
+    {
+        for(int j = 0; j<col; j++)
+        {
+            randomMatrix.at(i, j) = dis(gen);
+        }
+    }
+
+    return randomMatrix;
 }
 
 int main() {

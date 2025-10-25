@@ -3,6 +3,8 @@
 
 #include <netinet/in.h>
 
+#define MAX_MESSAGE_LENGTH 1024
+
 class Client {
 public:
     int clientSocket = -1;
@@ -12,6 +14,7 @@ public:
     ~Client();
 
     void sendMessenge(const char* message);
+    void receiveMessage();
 };
 
 #endif
