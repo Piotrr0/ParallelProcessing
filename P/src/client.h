@@ -13,8 +13,8 @@ public:
     Client(int serverPort, const char* serverIP);
     ~Client();
 
-    void sendMessenge(const char* message);
-    void receiveMessage();
+    bool sendMessenge(const char* message);
+    bool receiveMessage();
 };
 
 #endif

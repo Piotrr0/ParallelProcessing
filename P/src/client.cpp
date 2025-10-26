@@ -1,10 +1,11 @@
-#include <netinet/in.h>
+#include <string>
 #include <sys/socket.h>
 #include <arpa/inet.h>
 #include <unistd.h>
 #include <cstring>
 #include <print>
 #include "client.h"
+#include "client_cli.h"
 
 Client::Client(int serverPort, const char* serverIP) {
     clientSocket = socket(AF_INET, SOCK_STREAM, 0);
@@ -24,28 +25,43 @@ Client::~Client() {
         close(clientSocket);
 }
 
-void Client::sendMessenge(const char* message) {
+bool Client::sendMessenge(const char* message) {
     if (clientSocket < 0) 
-        return;
+        return false;
 
     send(clientSocket, message, strlen(message), 0);
-    receiveMessage();
+    return true;
 }
 
-void Client::receiveMessage() {
+bool Client::receiveMessage() {
     char messageBuffer[MAX_MESSAGE_LENGTH];
     
     int bytesReceived = recv(clientSocket, messageBuffer, sizeof(messageBuffer) - 1, 0);
-    if (bytesReceived > 0) {
-        messageBuffer[bytesReceived] = '\0';
-        std::println("{}", messageBuffer);
+    if (bytesReceived <= 0) {
+        return false;
     }
+
+    std::println("{}", messageBuffer);
+    return true;
 }
 
-int main() {
-    Client client(8080, "127.0.0.1");
-    client.sendMessenge("100, 100");
-    client.receiveMessage();
+int main(int argc, char* argv[]) {
+    
+    using namespace Client_CLI;
 
+    if (argc == 1) {
+        printUsage(argv[0]);
+        return 0;
+    }
+
+    Config config;
+    if (!parseArguments(argc, argv, config)) {
+        return 1;
+    }
+
+    Client client(config.serverPort, config.serverIP);
+    std::string message = formatMessage(config.rows, config.cols, config.forks);
+    client.sendMessenge(message.c_str());
+    client.receiveMessage();
     return 0;
 }

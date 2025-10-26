@@ -18,8 +18,10 @@ public:
     ~Server();
 
     void listenForConnection();
-    void receiveMessage();
-    void sendMessage(const char* msg);
+    bool receiveMessage();
+    bool sendMessage(const char* msg);
+    bool isClientConnected() const;
+    void handleClient();
 
     matrix_t multiplyMatrixParallel(const matrix_t& a, const matrix_t& b, int numProcesses) const;
     matrix_t multiplyMatrix(const matrix_t& a, const matrix_t& b) const;
