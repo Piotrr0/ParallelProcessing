@@ -1,14 +1,14 @@
 #include <print>
 #include <chrono>
 
-struct timerOutput {
+struct timerOutput_t {
     double cpuTime;
     double elapsedTime;
 };
 
 class Timer {
     public:
-        Timer(timerOutput* output) : output(output) {
+        Timer(timerOutput_t* output) : output(output) {
             std::println("Start Timer");
             startCPU = clock();
             start = std::chrono::high_resolution_clock::now();
@@ -40,5 +40,5 @@ class Timer {
         std::chrono::time_point<std::chrono::high_resolution_clock> start;
         std::chrono::time_point<std::chrono::high_resolution_clock> stop;
 
-        timerOutput* output;
+        timerOutput_t* output;
 };

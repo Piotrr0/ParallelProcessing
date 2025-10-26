@@ -105,12 +105,11 @@ void Server::parseReceiveMessge(char msg[MAX_MESSAGE_LENGTH]) {
     if (sscanf(msg, "%d, %d, %d", &rows, &cols, &processes) != 3)
         return;
 
-    timerOutput parallelTiming;
-    timerOutput serialTiming;
-    
     matrix_t a = genMatrix(rows, cols);
     matrix_t b = genMatrix(rows, cols);
 
+    timerOutput_t parallelTiming;
+    timerOutput_t serialTiming;
     {
         Timer t(&parallelTiming);
         multiplyMatrixParallel(a, b, processes);
