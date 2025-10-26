@@ -1,7 +1,9 @@
 #include <cstdlib>
 #include <print>
+#include <format>
 #include <cstring>
 #include <random>
+#include <sys/types.h>
 #include <sys/wait.h>
 #include <sys/mman.h>
 #include <sys/socket.h>
@@ -19,6 +21,9 @@ Server::Server(int port) {
     serverAddress.sin_port = htons(port);
     serverAddress.sin_addr.s_addr = INADDR_ANY;
 
+    int opt = 1;
+    setsockopt(serverSocket, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt));
+
     if (bind(serverSocket, (struct sockaddr*)&serverAddress, sizeof(serverAddress)) < 0)
         return;
     }
@@ -31,51 +36,110 @@ Server::~Server() {
         close(serverSocket);
 }
 
-void Server::listenForConnection() {
-    if (listen(serverSocket, maxPendingConnections) < 0)
-        return;
-
-    connectedClientSocket = accept(serverSocket, nullptr, nullptr);
+bool Server::isClientConnected() const {
     if (connectedClientSocket < 0)
-        return;
-
-    receiveMessage();
+        return false;
+    
+    int error = 0;
+    socklen_t len = sizeof(error);
+    int retval = getsockopt(connectedClientSocket, SOL_SOCKET, SO_ERROR, &error, &len);
+    
+    return (retval == 0 && error == 0);
 }
 
-void Server::receiveMessage() {
-    char messageBuffer[MAX_MESSAGE_LENGTH];
-    int bytesReceived = recv(connectedClientSocket, messageBuffer, sizeof(messageBuffer) - 1, 0);
-    if (bytesReceived > 0) {
-        messageBuffer[bytesReceived] = '\0';
-        parseReceiveMessge(messageBuffer);
+void Server::listenForConnection() {
+    if (serverSocket < 0 || listen(serverSocket, maxPendingConnections) < 0)
+        return;
+
+    while(true)
+    {
+        sockaddr_in clientAddr;
+        socklen_t clientAddrLen = sizeof(struct sockaddr_in);
+
+        connectedClientSocket = accept(serverSocket, nullptr, nullptr);
+        if (connectedClientSocket < 0)
+            return;
+
+        char clientIP[INET_ADDRSTRLEN];
+        inet_ntop(AF_INET, &clientAddr.sin_addr, clientIP, INET_ADDRSTRLEN);
+
+        handleClient();
+
+        close(connectedClientSocket);
+        connectedClientSocket = -1;
     }
 }
 
-void Server::sendMessage(const char* msg) {
-    int bytesSent = send(connectedClientSocket, msg, strlen(msg), 0);
+void Server::handleClient() {
+    while (isClientConnected()) {
+        if (!receiveMessage()) {
+            break;
+        }
+    }
+}
+
+bool Server::receiveMessage() {
+    char messageBuffer[MAX_MESSAGE_LENGTH];
+    int bytesReceived = recv(connectedClientSocket, messageBuffer, sizeof(messageBuffer) - 1, 0);
+    if (bytesReceived <= 0)
+        return false;
+    
+    messageBuffer[bytesReceived] = '\0';
+    parseReceiveMessge(messageBuffer);
+    return true;
+}
+
+bool Server::sendMessage(const char* msg) {
+    if (!isClientConnected())
+        return false;
+
+    ssize_t bytesSent = send(connectedClientSocket, msg, strlen(msg), 0);
     if (bytesSent == -1)
-        return;
+        return false;
+
+    return true;
 }
 
 void Server::parseReceiveMessge(char msg[MAX_MESSAGE_LENGTH]) {
-    int rows, cols;
-    if (sscanf(msg, "%d, %d", &rows, &cols) != 2)
+    int rows, cols, processes;
+    if (sscanf(msg, "%d, %d, %d", &rows, &cols, &processes) != 3)
         return;
 
+    timerOutput parallelTiming;
+    timerOutput serialTiming;
+    
     matrix_t a = genMatrix(rows, cols);
     matrix_t b = genMatrix(rows, cols);
+
     {
-        Timer t;
-        multiplyMatrixParallel(a, b, 5);
+        Timer t(&parallelTiming);
+        multiplyMatrixParallel(a, b, processes);
     }
 
     {
-        Timer t;
+        Timer t(&serialTiming);
         multiplyMatrix(a, b);
     }
 
-    std::string response = "Done\n";
-    sendMessage(response.c_str());
+    double speedup = (serialTiming.elapsedTime > 0) ? static_cast<double>(serialTiming.elapsedTime) / parallelTiming.elapsedTime : 0.0;
+
+    std::string timingMsg = std::format(
+        "Matrix {}x{} multiplication completed:\n"
+        "Parallel ({} processes):\n"
+        "  CPU time: {:.6f}s\n"
+        "  time: {}ms\n"
+        "Serial:\n"
+        "  CPU time: {:.6f}s\n"
+        "  time: {}ms\n"
+        "Speedup: {:.2f}x\n\n",
+        rows, cols,
+        processes,
+        parallelTiming.cpuTime, parallelTiming.elapsedTime,
+        serialTiming.cpuTime, serialTiming.elapsedTime,
+        speedup
+    );
+
+    sendMessage(timingMsg.c_str());
 }
 
 matrix_t Server::multiplyMatrixParallel(const matrix_t& a, const matrix_t& b, int numProcesses) const {

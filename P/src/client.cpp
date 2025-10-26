@@ -58,7 +58,7 @@ int main(int argc, char* argv[]) {
     }
 
     Client client(config.serverPort, config.serverIP);
-    std::string message = formatMessage(config.rows, config.cols);
+    std::string message = formatMessage(config.rows, config.cols, config.forks);
     client.sendMessenge(message.c_str());
     return 0;
 }

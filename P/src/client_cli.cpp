@@ -1,4 +1,5 @@
 #include <print>
+#include <string>
 #include "client_cli.h"
 
 bool Client_CLI::parsePositiveInt(const char* str, int& value, const char* fieldName) {
@@ -70,6 +71,17 @@ bool Client_CLI::parseArguments(int argc, char* argv[], Config& config) {
                 return false;
             }
         }
+
+        else if (arg == "-f" || arg == "-forks") {
+            if (i + 1 < argc) {
+                if (!parsePositiveInt(argv[++i], config.forks, "processes")) {
+                    return false;
+                }
+            } else {
+                std::println("Error: {} requires an argument", arg);
+                return false;
+            }
+        }
     }
     
     return true;
@@ -84,8 +96,9 @@ void Client_CLI::printUsage(const char* programName)
     std::println("  -p, --port PORT      Server port (default: 8080)");
     std::println("  -r, --rows ROWS      Number of matrix rows (required)");
     std::println("  -c, --cols COLS      Number of matrix columns (required)");
+    std::println("  -f, --forks FORKS    Number of processes (default: 4)");
 }
 
-std::string Client_CLI::formatMessage(int rows, int cols) {
-    return std::to_string(rows) + ", " + std::to_string(cols);
+std::string Client_CLI::formatMessage(int rows, int cols, int forks) {
+    return std::to_string(rows) + ", " + std::to_string(cols) + ", " + std::to_string(forks);
 }
