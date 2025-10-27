@@ -60,9 +60,6 @@ void Server::listenForConnection() {
         if (connectedClientSocket < 0)
             return;
 
-        char clientIP[INET_ADDRSTRLEN];
-        inet_ntop(AF_INET, &clientAddr.sin_addr, clientIP, INET_ADDRSTRLEN);
-
         handleClient();
 
         close(connectedClientSocket);
@@ -80,8 +77,8 @@ void Server::handleClient() {
 
 bool Server::receiveMessage() {
     char messageBuffer[MAX_MESSAGE_LENGTH];
-    int bytesReceived = recv(connectedClientSocket, messageBuffer, sizeof(messageBuffer) - 1, 0);
-    if (bytesReceived <= 0)
+    ssize_t bytesReceived = recv(connectedClientSocket, messageBuffer, sizeof(messageBuffer) - 1, 0);
+    if (bytesReceived == -1)
         return false;
     
     messageBuffer[bytesReceived] = '\0';
@@ -120,7 +117,7 @@ void Server::parseReceiveMessge(char msg[MAX_MESSAGE_LENGTH]) {
         multiplyMatrix(a, b);
     }
 
-    double speedup = (serialTiming.elapsedTime > 0) ? static_cast<double>(serialTiming.elapsedTime) / parallelTiming.elapsedTime : 0.0;
+    double speedup = serialTiming.elapsedTime > 0 ? serialTiming.elapsedTime / parallelTiming.elapsedTime : 0.0;
 
     std::string timingMsg = std::format(
         "Matrix {}x{} multiplication completed:\n"

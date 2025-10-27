@@ -29,15 +29,18 @@ bool Client::sendMessenge(const char* message) {
     if (clientSocket < 0) 
         return false;
 
-    send(clientSocket, message, strlen(message), 0);
+    ssize_t bytesSent = send(clientSocket, message, strlen(message), 0);
+    if(bytesSent == -1)
+        return false;
+
     return true;
 }
 
 bool Client::receiveMessage() {
     char messageBuffer[MAX_MESSAGE_LENGTH];
     
-    int bytesReceived = recv(clientSocket, messageBuffer, sizeof(messageBuffer) - 1, 0);
-    if (bytesReceived <= 0) {
+    ssize_t bytesReceived = recv(clientSocket, messageBuffer, sizeof(messageBuffer) - 1, 0);
+    if (bytesReceived == -1) {
         return false;
     }
 
