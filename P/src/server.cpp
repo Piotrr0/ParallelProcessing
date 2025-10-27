@@ -58,7 +58,7 @@ void Server::listenForConnection() {
 
         connectedClientSocket = accept(serverSocket, nullptr, nullptr);
         if (connectedClientSocket < 0)
-            return;
+            continue;
 
         handleClient();
 
@@ -78,9 +78,14 @@ void Server::handleClient() {
 bool Server::receiveMessage() {
     char messageBuffer[MAX_MESSAGE_LENGTH];
     ssize_t bytesReceived = recv(connectedClientSocket, messageBuffer, sizeof(messageBuffer) - 1, 0);
-    if (bytesReceived == -1)
-        return false;
     
+    if (bytesReceived == 0) { // Client disconneted
+        return false;
+    }
+    
+    if (bytesReceived == -1) {
+        return false;
+    }
     messageBuffer[bytesReceived] = '\0';
     parseReceiveMessge(messageBuffer);
     return true;
