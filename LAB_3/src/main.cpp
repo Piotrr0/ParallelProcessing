@@ -86,6 +86,18 @@ void* thread_integral(void* arg) {
     return nullptr;
 }
 
+pthread_mutex_t sumMutex;
+double globalSum = 0;
+
+void* thread_integral_shared(void* arg) {
+    auto* info = static_cast<IntegralThreadInfo*>(arg);
+    double local = calculate_integral(info->start, info->end, example_func, info->steps);
+    pthread_mutex_lock(&sumMutex);
+    globalSum += local;
+    pthread_mutex_unlock(&sumMutex);
+    return nullptr;
+}
+
 double calculate_integral_threaded(double start, float end, float(*func)(float), size_t steps = 10000000, size_t threads_count = 5)
 {
     std::vector<IntegralThreadInfo> infos(threads_count);
@@ -98,7 +110,7 @@ double calculate_integral_threaded(double start, float end, float(*func)(float),
         infos[i].end = start + (i + 1) * range_step;
         infos[i].steps = steps_per_thread;
 
-        pthread_create(&infos[i].tid, nullptr, thread_integral, &infos[i]);
+        pthread_create(&infos[i].tid, nullptr, thread_integral_shared, &infos[i]);
     }
 
     double total = 0;
@@ -149,7 +161,7 @@ int main() {
     TimerOutput sequential;
     
     const size_t total_steps = 10000000;
-    const size_t thread_count = 5;
+    const size_t thread_count = 8;
     
     {
         Timer timer(parallel);
@@ -170,40 +182,55 @@ int main() {
     const int threadCount = 100; 
     std::vector<pthread_t> threads;
     threads.reserve(threadCount);
-    for (int i = 0 ; i<threadCount; i++) {
-        pthread_t tid;
-        pthread_create(&tid, nullptr, threaded_function, nullptr);
-        threads.emplace_back(tid);
+
+    TimerOutput time;
+    {
+        Timer timer(time);
+        for (int i = 0 ; i<threadCount; i++) {
+            pthread_t tid;
+            pthread_create(&tid, nullptr, threaded_function, nullptr);
+            threads.emplace_back(tid);
+        }
+
+        for (auto& thread : threads) {
+            pthread_join(thread, nullptr);
+        }
+        std::cout << "Counter: " << counter << std::endl;
     }
 
-    for (auto& thread : threads) {
-        pthread_join(thread, nullptr);
-    }
-    std::cout << "Counter: " << counter << std::endl;
-
+    std::cout << std::endl;
     threads.clear();
-    for (int i = 0 ; i<threadCount; i++) {
-        pthread_t tid;
-        pthread_create(&tid, nullptr, threaded_function_atomic, nullptr);
-        threads.emplace_back(tid);
+
+    {
+        Timer timer(time);
+        for (int i = 0 ; i<threadCount; i++) {
+            pthread_t tid;
+            pthread_create(&tid, nullptr, threaded_function_atomic, nullptr);
+            threads.emplace_back(tid);
+        }
+
+        for (auto& thread : threads) {
+            pthread_join(thread, nullptr);
+        }
+        std::cout << "Atomic Counter: " << atomicCounter << std::endl;
     }
 
-    for (auto& thread : threads) {
-        pthread_join(thread, nullptr);
-    }
-    std::cout << "Atomic Counter: " << atomicCounter << std::endl;
-
+    std::cout << std::endl;
     threads.clear();
-    for (int i = 0 ; i<threadCount; i++) {
-        pthread_t tid;
-        pthread_create(&tid, nullptr, threaded_function_mutex, nullptr);
-        threads.emplace_back(tid);
-    }
 
-    for (auto& thread : threads) {
-        pthread_join(thread, nullptr);
+    {
+        Timer timer(time);
+        for (int i = 0 ; i<threadCount; i++) {
+            pthread_t tid;
+            pthread_create(&tid, nullptr, threaded_function_mutex, nullptr);
+            threads.emplace_back(tid);
+        }
+
+        for (auto& thread : threads) {
+            pthread_join(thread, nullptr);
+        }
+        std::cout << "Mutex Counter: " << mutexCounter << std::endl;
     }
-    std::cout << "Mutex Counter: " << mutexCounter << std::endl;
 
     return 0;
 }
