@@ -1,0 +1,26 @@
+syntax = "proto3";
+
+package matrix;
+
+service MatrixService {
+  rpc MultiplyMatrix (MatrixRequest) returns (MatrixReply) {}
+}
+
+message MatrixRequest {
+  int32 rows_a = 1;
+  int32 cols_a = 2;
+  int32 rows_b = 3;
+  int32 cols_b = 4;
+
+  int32 forks = 5;
+  repeated int32 matrix_a = 6;
+  repeated int32 matrix_b = 7;
+  bool use_custom = 8;
+}
+
+message MatrixReply {
+  string message = 1;
+  int32 result_rows = 2;
+  int32 result_cols = 3;
+  repeated int32 result_matrix = 4;
+}
