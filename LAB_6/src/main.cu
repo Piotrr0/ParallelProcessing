@@ -50,6 +50,12 @@ __global__ void square(float* data, int n) {
     }
 }
 
+__global__ void kernel(float*data, int n) {
+    int tid = blockIdx.x * blockDim.x + threadIdx.x;
+    if (tid < n){
+        data[tid] = blockIdx.x;
+    }
+}
 __global__ void kernel_intrinsic(float* data, int n, int iters) {
     int tid = blockIdx.x * blockDim.x + threadIdx.x;
     if (tid >= n)
@@ -108,8 +114,16 @@ int main()
     int threads = 256;
     int blocks  = (N + threads - 1) / threads;
     
-    square<<<blocks, threads>>>(gpuData, N);
+    kernel<<<blocks, threads>>>(gpuData, N);
+    //square<<<blocks, threads>>>(gpuData, N);
     cudaMemcpy(data, gpuData, sizeof(float) * N, cudaMemcpyDeviceToHost);
+
+    /*
+    for (int i = 0; i<N; i++)
+    {
+        printf("%f\n", data[i]);
+    }
+    */
 
     {
         Timer timer;
