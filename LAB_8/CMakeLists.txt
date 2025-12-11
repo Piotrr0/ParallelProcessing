@@ -1,0 +1,15 @@
+cmake_minimum_required(VERSION 3.18)
+
+project(LAB_8 LANGUAGES CXX CUDA)
+
+set(CMAKE_CXX_STANDARD 14)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CUDA_STANDARD 14)
+set(CMAKE_CUDA_STANDARD_REQUIRED ON)
+
+add_executable(LAB_8 src/main.cu)
+set_property(TARGET LAB_8 PROPERTY CUDA_ARCHITECTURES native)
+
+if(CMAKE_CUDA_COMPILER_ID STREQUAL "NVIDIA")
+    target_compile_options(LAB_8 PRIVATE -O3)
+endif()
